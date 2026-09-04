@@ -50,6 +50,9 @@ A GitHub Actions workflow (`.github/workflows/validate.yml`) runs on every push 
 
 The video covers: the ERD and its relationships, the API endpoint plan, the SQL script, and running the SQL script in SSMS.
 
+## Figma Prototype 
+Link: 
+
 ## Notes
 
 - `PasswordHash` values in the seed data are placeholders, not real hashes — password hashing will be implemented as part of the registration endpoint in Part 2.
