@@ -46,7 +46,7 @@ A GitHub Actions workflow (`.github/workflows/validate.yml`) runs on every push 
 
 ## Video Presentation
 
-**Unlisted YouTube link:** *[Paste your YouTube link here]*
+**Unlisted YouTube link:** *Find the YouTube Link in Planning and Design Document*
 
 The video covers: the ERD and its relationships, the API endpoint plan, the SQL script, and running the SQL script in SSMS.
 
@@ -56,4 +56,4 @@ Link: https://www.figma.com/make/NGOe7Hd3sYIWjFcENYOtfL/RaceDay-Booking-Platform
 ## Notes
 
 - `PasswordHash` values in the seed data are placeholders, not real hashes — password hashing will be implemented as part of the registration endpoint in Part 2.
-- No AI-generated voiceover was used in the video presentation. Any AI tool use in planning, proofreading, or coding is disclosed here: *[add your disclosure if applicable]*.
+- No AI-generated voiceover was used in the video presentation.
