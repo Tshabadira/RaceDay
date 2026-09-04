@@ -41,7 +41,8 @@ A GitHub Actions workflow (`.github/workflows/validate.yml`) runs on every push 
 
 **Successful build screenshot:**
 
-*[Paste your green CI/CD build screenshot here]*
+*[<img width="1162" height="212" alt="image" src="https://github.com/user-attachments/assets/d1cba342-2955-47e7-9676-0c9ed965c9b3" />
+]*
 
 ## Video Presentation
 
