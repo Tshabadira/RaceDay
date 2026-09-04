@@ -1,0 +1,44 @@
+name: Validate Part 1 Deliverables
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check required Part 1 files exist
+        run: |
+          echo "Checking for required Part 1 files..."
+
+          required_files=(
+            "docs/ERD.pdf"
+            "docs/APIEndpointPlan.pdf"
+            "docs/RaceDayDatabase.sql"
+            "README.md"
+          )
+
+          missing=0
+          for file in "${required_files[@]}"; do
+            if [ -f "$file" ]; then
+              echo "Found: $file"
+            else
+              echo "MISSING: $file"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -eq 1 ]; then
+            echo ""
+            echo "One or more required files are missing. Failing the build."
+            exit 1
+          fi
+
+          echo ""
+          echo "All required Part 1 files are present."
