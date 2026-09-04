@@ -51,7 +51,7 @@ A GitHub Actions workflow (`.github/workflows/validate.yml`) runs on every push 
 The video covers: the ERD and its relationships, the API endpoint plan, the SQL script, and running the SQL script in SSMS.
 
 ## Figma Prototype 
-Link: 
+Link: https://www.figma.com/make/NGOe7Hd3sYIWjFcENYOtfL/RaceDay-Booking-Platform-Design?fullscreen=1&t=jveMVQcC4cWN5YWS-1&code-node-id=0-6
 
 ## Notes
 
