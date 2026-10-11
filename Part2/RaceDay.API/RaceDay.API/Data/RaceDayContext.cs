@@ -22,25 +22,87 @@ public class RaceDayContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<User>().ToTable("User");
+        // Table names and CHECK rules - match the Part 1 SQL script
+        modelBuilder.Entity<User>().ToTable("User", t =>
+            t.HasCheckConstraint("CK_User_Role",
+                "[Role] IN ('Organiser', 'Participant')"));
 
-        modelBuilder.Entity<Event>().ToTable("Event");
+        modelBuilder.Entity<Event>().ToTable("Event", t =>
+            t.HasCheckConstraint("CK_Event_Status",
+                "[Status] IN ('Upcoming', 'Completed', 'Cancelled')"));
 
-        modelBuilder.Entity<Category>().ToTable("Category");
+        modelBuilder.Entity<Category>().ToTable("Category", t =>
+            t.HasCheckConstraint("CK_Category_EventType",
+                "[EventType] IN ('run', 'walk', 'cycle')"));
 
         modelBuilder.Entity<Route>().ToTable("Route");
 
-        modelBuilder.Entity<Enrolment>().ToTable("Enrolment");
+        modelBuilder.Entity<Enrolment>().ToTable("Enrolment", t =>
+            t.HasCheckConstraint("CK_Enrolment_PaymentStatus",
+                "[PaymentStatus] IN ('Pending', 'Paid')"));
 
-        modelBuilder.Entity<Result>().ToTable("Result");
+        modelBuilder.Entity<Result>().ToTable("Result", t =>
+            t.HasCheckConstraint("CK_Result_Status",
+                "[Status] IN ('Finished', 'DNF', 'DSQ')"));
 
-        modelBuilder .Entity<User>()
+        // Unique rules
+        modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
 
-        modelBuilder .Entity<Enrolment>()
+        modelBuilder.Entity<Enrolment>()
             .HasIndex(e => new { e.ParticipantID, e.CategoryID })
             .IsUnique();
-    }
 
+        // Defaults calculated by the database (DEFAULT GETDATE())
+        modelBuilder.Entity<User>()
+            .Property(u => u.CreatedAt)
+            .HasDefaultValueSql("GETDATE()");
+
+        modelBuilder.Entity<Enrolment>()
+            .Property(e => e.EnrolmentDate)
+            .HasDefaultValueSql("GETDATE()");
+
+        // Fixed default values
+        modelBuilder.Entity<Event>()
+            .Property(e => e.Status)
+            .HasDefaultValue("Upcoming");
+
+        modelBuilder.Entity<Enrolment>()
+            .Property(e => e.PaymentStatus)
+            .HasDefaultValue("Pending");
+
+        modelBuilder.Entity<Result>()
+            .Property(r => r.Status)
+            .HasDefaultValue("Finished");
+
+        // Number sizes - match the DECIMAL columns in the SQL script
+        modelBuilder.Entity<Category>()
+            .Property(c => c.EntryFee)
+            .HasPrecision(8, 2)
+            .HasDefaultValue(0m);
+
+        modelBuilder.Entity<Category>()
+            .Property(c => c.DistanceKM)
+            .HasPrecision(5, 2);
+
+        modelBuilder.Entity<Event>()
+            .Property(e => e.Latitude)
+            .HasPrecision(9, 6);
+
+        modelBuilder.Entity<Event>()
+            .Property(e => e.Longitude)
+            .HasPrecision(9, 6);
+
+        modelBuilder.Entity<Route>()
+            .Property(r => r.ElevationGainM)
+            .HasPrecision(6, 1);
+
+        // Delete rules - no cascading deletes, matching the Part 1 SQL script
+        foreach (var foreignKey in modelBuilder.Model.GetEntityTypes()
+                     .SelectMany(entity => entity.GetForeignKeys()))
+        {
+            foreignKey.DeleteBehavior = DeleteBehavior.Restrict;
+        }
+    }
 }
