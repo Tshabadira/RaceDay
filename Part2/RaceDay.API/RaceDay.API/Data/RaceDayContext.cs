@@ -17,4 +17,30 @@ public class RaceDayContext : DbContext
     public DbSet<Route> Routes { get; set; }
     public DbSet<Enrolment> Enrolments { get; set; }
     public DbSet<Result> Results { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<User>().ToTable("User");
+
+        modelBuilder.Entity<Event>().ToTable("Event");
+
+        modelBuilder.Entity<Category>().ToTable("Category");
+
+        modelBuilder.Entity<Route>().ToTable("Route");
+
+        modelBuilder.Entity<Enrolment>().ToTable("Enrolment");
+
+        modelBuilder.Entity<Result>().ToTable("Result");
+
+        modelBuilder .Entity<User>()
+            .HasIndex(u => u.Email)
+            .IsUnique();
+
+        modelBuilder .Entity<Enrolment>()
+            .HasIndex(e => new { e.ParticipantID, e.CategoryID })
+            .IsUnique();
+    }
+
 }
