@@ -17,8 +17,8 @@ namespace RaceDay.API.Dtos
         public string Password { get; set; } = string.Empty;
 
         [Required]
-        [RegularExpression("^(Organiser|Perticipants)$",
-            ErrorMessage = "Role must be either 'Organiser' or 'Perticipants'.")]
+        [RegularExpression("^(Organiser|Participant)$",
+       ErrorMessage = "Role must be either Organiser or Participant.")]
         public string Role { get; set; } = string.Empty;
 
         [ MaxLength(20)]
