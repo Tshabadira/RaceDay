@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaceDay.API.Data;
 using RaceDay.API.Dtos;
+using RaceDay.API.Helpers;
 using RaceDay.API.Models;
+using RaceDay.API.Services;
 
 namespace RaceDay.API.Controllers;
 
@@ -12,19 +15,20 @@ namespace RaceDay.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly RaceDayContext _context;
+    private readonly JwtTokenService _tokenService;
     private readonly PasswordHasher<User> _passwordHasher = new();
 
-    public AuthController(RaceDayContext context)
+    public AuthController(RaceDayContext context, JwtTokenService tokenService)
     {
         _context = context;
+        _tokenService = tokenService;
     }
 
     /// <summary>
     /// Registers a new account as either an Organiser or a Participant.
     /// </summary>
     /// <remarks>
-    /// Anyone can call this endpoint. The password is hashed before it is stored
-    /// and is never returned.
+    /// Anyone can call this endpoint. The password is hashed before it is stored and is never returned.
     /// </remarks>
     /// <response code="201">Account created. Returns the new user's details.</response>
     /// <response code="400">Invalid data, or the email is already registered.</response>
@@ -55,20 +59,62 @@ public class AuthController : ControllerBase
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        return StatusCode(StatusCodes.Status201Created, ToResponse(user));
+        return StatusCode(StatusCodes.Status201Created, user.ToResponse());
     }
 
-    private static UserResponse ToResponse(User user)
+    /// <summary>
+    /// Logs a user in and returns a token (JWT) to send with every later request.
+    /// </summary>
+    /// <remarks>
+    /// Anyone can call this endpoint. Send the token in the Authorization header as "Bearer your-token",
+    /// or press the Authorize button in Swagger. The token carries the user's role and expires after 2 hours.
+    /// </remarks>
+    /// <response code="200">Login succeeded. Returns the token, its expiry time and the user's details.</response>
+    /// <response code="401">The email or password is wrong.</response>
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
-        return new UserResponse
+        var email = request.Email.Trim();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+        // Same message for "no such email" and "wrong password", so nobody can find out which emails exist
+        if (user == null)
         {
-            UserID = user.UserID,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email,
-            Role = user.Role,
-            PhoneNumber = user.PhoneNumber,
-            CreatedAt = user.CreatedAt
-        };
+            return Unauthorized(new { message = "Invalid email or password." });
+        }
+
+        var check = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
+        if (check == PasswordVerificationResult.Failed)
+        {
+            return Unauthorized(new { message = "Invalid email or password." });
+        }
+
+        var (token, expiresAt) = _tokenService.CreateToken(user);
+
+        return Ok(new LoginResponse
+        {
+            Token = token,
+            ExpiresAt = expiresAt,
+            User = user.ToResponse()
+        });
+    }
+
+    /// <summary>
+    /// Ends the current session.
+    /// </summary>
+    /// <remarks>
+    /// Tokens are stateless, so the server keeps no session to close. The client must delete its stored token.
+    /// </remarks>
+    /// <response code="200">Logged out.</response>
+    /// <response code="401">No valid token was sent.</response>
+    [Authorize]
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult Logout()
+    {
+        return Ok(new { message = "Logged out. Delete the token on the client." });
     }
 }
