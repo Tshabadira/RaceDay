@@ -98,5 +98,6 @@ Logging in returns a signed **JWT** (JSON Web Token) that carries the user's ID 
 
 **Successful build screenshot:**
 
-*[Paste your green CI/CD build screenshot here]*
+*[<img width="1161" height="727" alt="image" src="https://github.com/user-attachments/assets/23c5c2cb-9a0d-465a-940c-8d03f96b2504" />
+]*
 
