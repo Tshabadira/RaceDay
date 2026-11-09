@@ -123,7 +123,8 @@ The website logs in through `POST /api/auth/login`. The API returns a signed JWT
 
 **Successful build screenshot:**
 
-*[Paste your green CI/CD build screenshot here]*
+*[<img width="1152" height="572" alt="image" src="https://github.com/user-attachments/assets/ff3fc3a2-8ebf-4acf-baa3-a25f606e9596" />
+]*
 
 ## AI use disclosure
 
