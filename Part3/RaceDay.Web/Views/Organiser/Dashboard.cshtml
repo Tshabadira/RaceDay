@@ -1,0 +1,73 @@
+@model OrganiserDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1>Organiser dashboard</h1>
+
+@if (!string.IsNullOrEmpty(Model.LoadError))
+{
+    <div class="alert alert-warning">@Model.LoadError</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="rd-stat"><div class="n">@Model.Events.Count</div><div class="l">Events you created</div></div></div>
+    <div class="col-md-4"><div class="rd-stat"><div class="n">@Model.TotalEnrolments</div><div class="l">Total enrolments</div></div></div>
+    <div class="col-md-4"><div class="rd-stat"><div class="n">@Model.UpcomingEvents.Count</div><div class="l">Upcoming events</div></div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="rd-panel">
+            <h2>Enrolments per event</h2>
+            @if (!Model.Events.Any())
+            {
+                <p>You have not created any events yet.</p>
+                <a class="btn btn-primary" asp-action="CreateEvent">Create your first event</a>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Event</th><th>Date</th><th>Enrolments</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var ev in Model.Events)
+                            {
+                                <tr>
+                                    <td>@ev.EventName</td>
+                                    <td>@ev.EventDate.ToString("dd MMM yyyy")</td>
+                                    <td class="rd-mono">@ev.EnrolmentCount</td>
+                                    <td><partial name="_StatusBadge" model="ev.Status" /></td>
+                                    <td class="text-end"><a class="btn btn-outline-secondary btn-sm" asp-action="Enrolments" asp-route-eventId="@ev.EventID">View</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="rd-panel">
+            <h2>Upcoming event dates</h2>
+            @if (!Model.UpcomingEvents.Any())
+            {
+                <p class="mb-0">No upcoming events.</p>
+            }
+            else
+            {
+                <ul class="list-unstyled mb-0">
+                    @foreach (var ev in Model.UpcomingEvents.Take(6))
+                    {
+                        var days = (ev.EventDate.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days;
+                        <li class="mb-2">
+                            <strong>@ev.EventName</strong><br />
+                            <span class="text-muted">@ev.EventDate.ToString("dd MMM yyyy") - @(days == 0 ? "today" : days + " days to go")</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

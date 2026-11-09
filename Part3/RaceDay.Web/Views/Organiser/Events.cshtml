@@ -1,0 +1,46 @@
+@model List<OrganiserEventDto>
+@{
+    ViewData["Title"] = "My events";
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h1 class="mb-0">My events</h1>
+    <a class="btn btn-primary" asp-action="CreateEvent">Create event</a>
+</div>
+<p class="text-muted mt-2">Create, edit and delete your events, then manage their categories, enrolments and results.</p>
+
+@if (!Model.Any())
+{
+    <div class="rd-panel text-center"><h2>You have not created any events yet</h2></div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead><tr><th>Event</th><th>Date</th><th>Location</th><th>Categories</th><th>Enrolments</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var ev in Model)
+                {
+                    <tr>
+                        <td>@ev.EventName</td>
+                        <td>@ev.EventDate.ToString("dd MMM yyyy")</td>
+                        <td>@ev.Location, @ev.Province</td>
+                        <td class="rd-mono">@ev.CategoryCount</td>
+                        <td class="rd-mono">@ev.EnrolmentCount</td>
+                        <td><partial name="_StatusBadge" model="ev.Status" /></td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-outline-secondary btn-sm" asp-action="EditEvent" asp-route-id="@ev.EventID">Edit</a>
+                            <a class="btn btn-outline-secondary btn-sm" asp-action="Categories" asp-route-eventId="@ev.EventID">Categories</a>
+                            <a class="btn btn-outline-secondary btn-sm" asp-action="Enrolments" asp-route-eventId="@ev.EventID">Enrolments</a>
+                            <a class="btn btn-outline-secondary btn-sm" asp-action="Results" asp-route-eventId="@ev.EventID">Results</a>
+                            <form asp-action="DeleteEvent" method="post" class="d-inline" onsubmit="return confirm('Delete this event? This cannot be undone.');">
+                                <input type="hidden" name="id" value="@ev.EventID" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

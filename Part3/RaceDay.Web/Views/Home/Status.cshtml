@@ -1,0 +1,9 @@
+@{
+    var code = ViewData["Code"] is int c ? c : 0;
+    ViewData["Title"] = code == 404 ? "Page not found" : "Something went wrong";
+}
+<div class="rd-panel text-center">
+    <h1>@(code == 404 ? "We could not find that page" : "Something went wrong")</h1>
+    <p>@(code == 404 ? "The page you asked for does not exist." : "Please go back and try again.")</p>
+    <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Back to events</a>
+</div>

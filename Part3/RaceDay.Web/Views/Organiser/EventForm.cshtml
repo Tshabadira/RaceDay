@@ -1,0 +1,92 @@
+@model EventFormViewModel
+@{
+    var isEdit = Model.EventID != null;
+    var action = isEdit ? "EditEvent" : "CreateEvent";
+    ViewData["Title"] = isEdit ? "Edit event" : "Create event";
+}
+
+<h1>@(isEdit ? "Edit event" : "Create event")</h1>
+
+<div class="rd-panel">
+    <form asp-action="@action" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+        <input type="hidden" asp-for="EventID" />
+        <input type="hidden" asp-for="ExistingBannerUrl" />
+
+        <div class="row">
+            <div class="col-md-8 mb-3">
+                <label asp-for="EventName" class="form-label"></label>
+                <input asp-for="EventName" class="form-control" />
+                <span asp-validation-for="EventName" class="text-danger"></span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="EventDate" class="form-label"></label>
+                <input asp-for="EventDate" type="date" asp-format="{0:yyyy-MM-dd}" class="form-control" />
+                <span asp-validation-for="EventDate" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8 mb-3">
+                <label asp-for="Location" class="form-label"></label>
+                <input asp-for="Location" class="form-control" />
+                <span asp-validation-for="Location" class="text-danger"></span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Province" class="form-label"></label>
+                <select asp-for="Province" asp-items="@(new SelectList(Display.Provinces, Model.Province))" class="form-select">
+                    <option value="">Choose a province</option>
+                </select>
+                <span asp-validation-for="Province" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label asp-for="Latitude" class="form-label"></label>
+                <input asp-for="Latitude" type="number" step="any" class="form-control" placeholder="-26.2597" />
+                <span asp-validation-for="Latitude" class="text-danger"></span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="Longitude" class="form-label"></label>
+                <input asp-for="Longitude" type="number" step="any" class="form-control" placeholder="27.9385" />
+                <span asp-validation-for="Longitude" class="text-danger"></span>
+            </div>
+            @if (isEdit)
+            {
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select">
+                        <option value="Upcoming">Upcoming</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+            }
+        </div>
+        <div class="form-text mb-3">Latitude and longitude power the live weather and the directions link. They are optional.</div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" rows="4" class="form-control"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Banner" class="form-label"></label>
+            @if (!string.IsNullOrEmpty(Model.ExistingBannerUrl))
+            {
+                <div class="mb-2"><img src="@Model.ExistingBannerUrl" class="rd-banner" style="max-height:140px;width:auto;" alt="Current banner" /></div>
+            }
+            <input asp-for="Banner" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="form-control" />
+            <div class="form-text">JPG, PNG, WEBP or GIF, up to 5 MB. Saved in Azure Blob Storage through the API.</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">@(isEdit ? "Save changes" : "Create event")</button>
+        <a class="btn btn-outline-secondary" asp-action="Events">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

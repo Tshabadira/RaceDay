@@ -1,0 +1,116 @@
+@model EventDetailsViewModel
+@{
+    var ev = Model.Event;
+    ViewData["Title"] = ev.EventName;
+    var isParticipant = User.IsInRole("Participant");
+    var isLoggedIn = User.Identity?.IsAuthenticated == true;
+
+    // Directions: Google Maps opens with the event as the destination
+    var destination = ev.Latitude.HasValue && ev.Longitude.HasValue
+        ? ev.Latitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + ev.Longitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        : ev.Location;
+    var mapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + Uri.EscapeDataString(destination);
+}
+
+<p><a asp-controller="Home" asp-action="Index">&larr; All events</a></p>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        @if (!string.IsNullOrEmpty(ev.BannerImageUrl))
+        {
+            <img src="@ev.BannerImageUrl" class="rd-banner" alt="Banner for @ev.EventName" />
+        }
+
+        <h1>@ev.EventName</h1>
+        <p class="text-muted">
+            @ev.EventDate.ToString("dddd, dd MMMM yyyy") - @ev.Location, @ev.Province
+            <partial name="_StatusBadge" model="ev.Status" />
+        </p>
+
+        @if (!string.IsNullOrWhiteSpace(ev.Description))
+        {
+            <div class="rd-panel">
+                <h2>About this event</h2>
+                <p class="mb-0">@ev.Description</p>
+            </div>
+        }
+
+        <div class="rd-panel">
+            <h2>Categories</h2>
+            @if (!ev.Categories.Any())
+            {
+                <p class="mb-0">The organiser has not added any categories yet.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr><th>Category</th><th>Distance</th><th>Type</th><th>Entry fee</th><th>Places</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in ev.Categories)
+                            {
+                                <tr>
+                                    <td>
+                                        @c.CategoryName
+                                        @if (Model.Routes.TryGetValue(c.CategoryID, out var route))
+                                        {
+                                            <div class="small text-muted">
+                                                Route: @route.StartPoint to @route.EndPoint
+                                                @if (route.ElevationGainM.HasValue)
+                                                {
+                                                    <text>, climb @route.ElevationGainM.Value.ToString("0") m</text>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>@Display.Distance(c.DistanceKM)</td>
+                                    <td>@c.EventType</td>
+                                    <td>@Display.Money(c.EntryFee)</td>
+                                    <td>@c.MaxParticipants</td>
+                                    <td class="text-end">
+                                        @if (isParticipant)
+                                        {
+                                            <form asp-controller="Participant" asp-action="Enrol" method="post">
+                                                <input type="hidden" name="categoryId" value="@c.CategoryID" />
+                                                <input type="hidden" name="eventId" value="@ev.EventID" />
+                                                <button type="submit" class="btn btn-primary btn-sm">Enter</button>
+                                            </form>
+                                        }
+                                        else if (!isLoggedIn)
+                                        {
+                                            <a class="btn btn-outline-secondary btn-sm" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Url.Action("Details", "Home", new { id = ev.EventID })">Log in to enter</a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="rd-weather">
+            <div class="label">Race day weather</div>
+            @if (Model.Weather != null)
+            {
+                <div class="temp">@Model.Weather.TemperatureC.ToString("0")&deg;C</div>
+                <div class="mb-2">@Model.Weather.Conditions - feels like @Model.Weather.FeelsLikeC.ToString("0")&deg;C</div>
+                <div class="small">Wind @Model.Weather.WindSpeedKmh.ToString("0") km/h - Humidity @Model.Weather.HumidityPercent.ToString("0")%</div>
+            }
+            else
+            {
+                <p class="mb-0 mt-2">Weather is not available for this event right now.</p>
+            }
+        </div>
+
+        <div class="rd-panel">
+            <h2>Getting there</h2>
+            <p class="mb-2">@ev.Location, @ev.Province</p>
+            <a class="btn btn-success w-100" href="@mapsUrl" target="_blank" rel="noopener">Get directions</a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,68 @@
+@model EventResultsViewModel
+@{
+    ViewData["Title"] = "Results entry";
+    var ev = Model.Event;
+}
+
+<p><a asp-action="Events">&larr; My events</a></p>
+<h1>Results entry</h1>
+<p class="text-muted">@ev.EventName - @ev.EventDate.ToString("dd MMM yyyy"). Saving a result publishes it: the participant sees it straight away in My results.</p>
+
+@if (!Model.Enrolments.Any())
+{
+    <div class="rd-panel text-center"><h2>There are no enrolments to capture results for</h2></div>
+}
+else
+{
+    @foreach (var e in Model.Enrolments)
+    {
+        ResultDto? existing = null;
+        Model.ResultsByEnrolment.TryGetValue(e.EnrolmentID, out existing);
+
+        <div class="rd-panel">
+            <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+                <div>
+                    <strong>@e.ParticipantName</strong>
+                    <span class="text-muted">- @e.CategoryName - race number <span class="rd-mono">@e.RaceNumber</span></span>
+                </div>
+                @if (existing != null)
+                {
+                    <partial name="_StatusBadge" model="existing.Status" />
+                }
+                else
+                {
+                    <span class="rd-status rd-status-neutral">No result yet</span>
+                }
+            </div>
+
+            <form asp-action="SaveResult" method="post" class="row g-2 align-items-end">
+                <input type="hidden" name="EventID" value="@ev.EventID" />
+                <input type="hidden" name="EnrolmentID" value="@e.EnrolmentID" />
+                <input type="hidden" name="ResultID" value="@(existing?.ResultID)" />
+                <div class="col-md-3">
+                    <label class="form-label small">Finish time (hh:mm:ss)</label>
+                    <input name="FinishTime" class="form-control" placeholder="01:52:10" value="@(existing?.FinishTime.HasValue == true ? Display.Time(existing.FinishTime) : "")" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Overall position</label>
+                    <input name="OverallPosition" type="number" min="1" class="form-control" value="@(existing?.OverallPosition)" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Category position</label>
+                    <input name="CategoryPosition" type="number" min="1" class="form-control" value="@(existing?.CategoryPosition)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Status</label>
+                    <select name="Status" class="form-select">
+                        <option value="Finished" selected="@((existing?.Status ?? "Finished") == "Finished")">Finished</option>
+                        <option value="DNF" selected="@(existing?.Status == "DNF")">Did not finish (DNF)</option>
+                        <option value="DSQ" selected="@(existing?.Status == "DSQ")">Disqualified (DSQ)</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary">@(existing == null ? "Save result" : "Update result")</button>
+                </div>
+            </form>
+        </div>
+    }
+}
