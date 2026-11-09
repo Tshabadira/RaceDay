@@ -1,103 +1,130 @@
 # RaceDay
 
-A full-stack, API-driven event management platform for South Africa's road running, walking and cycling community. Event Organisers create and manage events, categories and participant results. Participants browse upcoming events, enter events, track their personal performance history, and prepare for race day using live weather and route information.
+A full-stack, API-driven event management platform for South Africa's road running, walking and cycling community. Event Organisers create and manage events, categories and results. Participants browse upcoming events, enter a category, see their race history, and prepare for race day with live weather, route information and directions.
 
-This repository holds **Part 1** (planning and database) and **Part 2** (the RESTful API). Part 3 (the MVC web application) comes later.
+| Part | What it is | Folder |
+|---|---|---|
+| 1 | Planning and database: ERD, endpoint plan, SQL script | `docs` |
+| 2 | RESTful API (ASP.NET Core, EF Core, JWT, Swagger, unit tests) | `Part2` |
+| 3 | MVC website, Azure Blob Storage image uploads, Docker | `Part3` |
 
 ## The two roles
 
-**Organiser**
-- Creates, edits and deletes **their own** events
-- Adds, edits and deletes categories (distances) for their events
-- Views every enrolment for their events
-- Captures and corrects participant results (finish time and positions)
+**Organiser:** creates, edits and deletes their own events (with a banner image); adds, edits and deletes categories; sees every enrolment for their events and confirms them; captures and publishes finish times and positions; has a dashboard with enrolments per event and upcoming dates.
 
-**Participant**
-- Registers an account and logs in
-- Browses events and categories, and views route and live weather information
-- Enters an event by choosing a category
-- Views their own enrolments and their own personal results history
+**Participant:** registers and logs in; browses and filters upcoming events; sees full event information, categories, route details, live weather and a directions link; enters an event by choosing a category; sees their enrolments and status (green Confirmed, amber Pending); sees their race history (for example "47th of 312 finishers"); updates their profile and uploads a profile picture.
 
-Both roles can view and update their own profile. Role rules are enforced **inside the API** (not just hidden in a screen): a Participant calling an Organiser endpoint receives `403 Forbidden`, and a request without a valid token to a protected endpoint receives `401 Unauthorized`.
+Roles are enforced **inside the API** (`401` without a token, `403` for the wrong role or for another Organiser's event). The website also hides and protects pages by role, and redirects logged-out visitors to the login page.
+
+## How the pieces fit
+
+```
+Browser  ->  RaceDay.Web (MVC, Docker)  ->  RaceDay.API  ->  SQL Server
+                                                |
+                                                +-------->  Azure Blob Storage (images)
+```
+
+The MVC website has **no database access and no business logic**. It only calls the API. Image files are sent to the API, and only the API talks to Azure Blob Storage.
 
 ## Repository structure
 
 ```
 RaceDay
-├── docs                      Part 1: ERD.pdf, APIEndpointPlan.pdf, RaceDayDatabase.sql
+├── docs                        Part 1: ERD.pdf, APIEndpointPlan.pdf, RaceDayDatabase.sql
 ├── Part2
-│   └── RaceDay.API           Part 2: the API solution
-│       ├── RaceDay.API       The ASP.NET Core Web API project
-│       └── RaceDay.Tests     The xUnit unit and integration tests
-├── .github/workflows         validate.yml (Part 1 file check), dotnet.yml (build + tests)
+│   └── RaceDay.API             solution: RaceDay.API (the API) and RaceDay.Tests (xUnit tests)
+├── Part3
+│   └── RaceDay.Web             the MVC website, Dockerfile, compose.yaml
+├── .github/workflows           validate.yml (Part 1 files), dotnet.yml (API, tests and website build)
 └── README.md
 ```
 
-## Setup and run (Part 2)
+## Setup and run
 
-**You need:** the .NET 9 SDK, SQL Server (Express is fine) and Visual Studio 2022 or the `dotnet` command line.
+**You need:** the .NET 9 SDK, SQL Server (Express is fine), Visual Studio 2022 or the `dotnet` command line, Docker Desktop, and an Azure Storage account for images.
 
-1. **Clone** the repository.
-2. **Set the two private settings** with user secrets, so no password or key is stored in GitHub. From `Part2/RaceDay.API/RaceDay.API`:
-   ```
-   dotnet user-secrets set "Jwt:Key" "any-random-text-of-at-least-32-characters"
-   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=YOUR-SERVER\SQLEXPRESS;Database=RaceDayDataBase;Trusted_Connection=True;TrustServerCertificate=True;"
-   ```
-   (In Visual Studio you can instead right-click the project and choose **Manage User Secrets**.)
-3. **Run** the API (F5 in Visual Studio, or `dotnet run --launch-profile https`). In Development the database and its tables are created automatically from the EF Core migrations.
-4. **Open Swagger:** `https://localhost:7015/swagger`
-5. **Try the protected endpoints:** call `POST /api/auth/register`, then `POST /api/auth/login`, copy the `token`, press **Authorize** and paste it.
+### 1. The API (`Part2/RaceDay.API/RaceDay.API`)
 
-### Run the tests
+Set the private settings with user secrets, so no password or key is stored in GitHub:
 
 ```
+dotnet user-secrets set "Jwt:Key" "any-random-text-of-at-least-32-characters"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=YOUR-SERVER\SQLEXPRESS;Database=RaceDayDataBase;Trusted_Connection=True;TrustServerCertificate=True;"
+dotnet user-secrets set "AzureStorage:ConnectionString" "your Azure storage account connection string"
+```
+
+Create a **container** named `raceday-images` in the storage account with anonymous access level **Blob**, so the browser can show the uploaded images.
+
+Run the API with the **`http`** launch profile (it listens on port 5012 for all network interfaces, which lets the Docker container reach it):
+
+```
+dotnet run --launch-profile http
+```
+
+In Development the database is created or upgraded automatically from the EF Core migrations. Swagger is at `http://localhost:5012/swagger`.
+
+### 2. The website
+
+Locally:
+
+```
+cd Part3/RaceDay.Web
+dotnet run
+```
+
+The website reads the API address from `ApiSettings:BaseUrl` (default `http://localhost:5012`).
+
+### 3. The website in Docker (one command)
+
+Start the API first (step 1), then:
+
+```
+cd Part3/RaceDay.Web
+docker compose up --build
+```
+
+Open **http://localhost:8080**. The container reaches the API on your computer through `host.docker.internal`. The same thing without Compose:
+
+```
+docker build -t raceday-web .
+docker run --rm -p 8080:8080 -e ApiSettings__BaseUrl=http://host.docker.internal:5012 --name raceday-web raceday-web
+```
+
+If the container cannot reach the API, allow the API through the Windows Firewall when Windows asks (private networks) and check that the API is running with the `http` profile.
+
+### Tests
+
+```
+cd Part2/RaceDay.API
 dotnet test
 ```
 
-The tests start the real API in memory with an empty in-memory database, so they never touch SQL Server.
+## Login and sessions
 
-## How login and roles work
+The website logs in through `POST /api/auth/login`. The API returns a signed JWT. The website keeps the token **in the server-side ASP.NET Core session** (never in the page) and puts the user's role in a login cookie. Every call to the API sends the token. Logging out calls the API, signs out the cookie and clears the session. If the session ends, the user is sent to the login page.
 
-Logging in returns a signed **JWT** (JSON Web Token) that carries the user's ID and role and expires after 2 hours. The client sends it in the `Authorization: Bearer <token>` header on every request, so the API keeps no server-side session. Passwords are **hashed** (ASP.NET Core `PasswordHasher`, with a random salt) and never stored or returned in plain text. Endpoints use `[Authorize(Roles = "Organiser")]` or `[Authorize(Roles = "Participant")]`, and Organiser actions on events, categories and results also check that the event belongs to the logged-in Organiser.
+## Differences from the plans
 
-## Endpoints
+**Part 2 (from the Part 1 plan):** register takes first and last name plus an optional phone number; a duplicate email returns `400`; logout is stateless (the client discards the token); deleting an event or category returns `409` while dependent rows exist; results use `overallPosition` and `categoryPosition`; weather uses the free Open-Meteo service; distance and event type live on the category; routes are added directly in the database.
 
-| Area | Endpoint | Who |
-|---|---|---|
-| Auth | `POST /api/auth/register`, `POST /api/auth/login` | Everyone |
-| Auth | `POST /api/auth/logout` | Logged-in user |
-| Profile | `GET` and `PUT /api/profile` | Logged-in user |
-| Events | `GET /api/events`, `GET /api/events/{id}` | Everyone |
-| Events | `POST /api/events`, `PUT` and `DELETE /api/events/{id}` | Organiser (owner) |
-| Weather | `GET /api/events/{id}/weather` | Everyone |
-| Categories | `GET /api/events/{id}/categories`, `GET /api/categories/{id}/route` | Everyone |
-| Categories | `POST /api/events/{id}/categories`, `PUT` and `DELETE /api/categories/{id}` | Organiser (owner) |
-| Enrolments | `POST /api/categories/{id}/enrolments`, `GET /api/enrolments/my` | Participant |
-| Enrolments | `GET /api/events/{id}/enrolments` | Organiser (owner) |
-| Results | `GET /api/results/my` | Participant |
-| Results | `GET /api/results/{id}` | Everyone |
-| Results | `POST /api/results`, `PUT /api/results/{id}` | Organiser (owner) |
-
-## Differences from the Part 1 plan
-
-- **Register** takes `firstName` and `lastName` (the ERD splits the name) plus an optional `phoneNumber`. A duplicate email returns `400`, as the plan lists.
-- **Profile `PUT`** accepts first name, last name, email and phone number.
-- **Logout** returns `200`, but a JWT is stateless, so the client deletes its own token. There is no server-side session to close.
-- **Delete event / delete category** return `409 Conflict` when dependent rows exist (categories, or enrolments), because the database uses no cascading deletes.
-- **Results** use `overallPosition` and `categoryPosition` (as in the ERD) instead of a single `Position`. Extra failure codes (`400`, `403`, `404`, `409`) were added for invalid, foreign or duplicate results.
-- **Enrolment** also returns `400` when the event is not open or the category is full.
-- **Weather** uses the free Open-Meteo service (no API key needed) instead of a keyed provider.
-- **Distance and event type** are stored on the category, as in the ERD, not on the event.
-- The `GET` endpoints for events, categories, routes, weather and single results are open to everyone, which includes any logged-in role.
-- There is no endpoint to create routes (the plan only lists `GET`), so routes are added directly in the database.
-- **Database naming:** Entity Framework Core maps `DateTime` to `datetime2` (the SQL script used `DATETIME`) and generates its own names for keys, indexes and `CHECK` constraints. The rules themselves are the same as in the SQL script.
+**Part 3 additions to the API:**
+- `POST /api/events/{id}/banner` and `POST /api/profile/picture` upload images to Azure Blob Storage.
+- `GET /api/events/mine` returns an Organiser's events with enrolment counts (for the dashboard).
+- `PUT /api/enrolments/{id}/payment` lets an Organiser confirm an enrolment.
+- `GET /api/events/{id}/results` lists the results of an event.
+- Results now include the number of finishers, so the website can show "47th of 312 finishers".
+- Two new database columns: `Event.BannerImageUrl` and `User.ProfilePictureUrl` (migration `AddImageUrls`).
+- The database stores `Pending` and `Paid`; the website shows `Paid` as **Confirmed**.
+- Entity Framework maps `DateTime` to `datetime2` and generates its own constraint and index names.
 
 ## CI/CD
 
-`.github/workflows/dotnet.yml` builds the API and runs all tests on every push. `validate.yml` checks that the Part 1 files exist.
+`.github/workflows/dotnet.yml` builds the API, runs all unit tests and builds the MVC website on every push.
 
 **Successful build screenshot:**
 
-*[<img width="1161" height="727" alt="image" src="https://github.com/user-attachments/assets/23c5c2cb-9a0d-465a-940c-8d03f96b2504" />
-]*
+*[Paste your green CI/CD build screenshot here]*
 
+## AI use disclosure
+
+* I used Claude (Anthropic) to help plan the project, explain concepts, and debug code. I reviewed, ran and tested the code, and I can explain how it works. 
